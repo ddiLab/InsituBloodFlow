@@ -1,0 +1,5 @@
+set(PALABOS_ROOT "/home/abucaro/palabos" CACHE STRING "")
+set(BLOODFLOW_ROOT "/home/abucaro/BloodFlow" CACHE STRING "")
+set(LAMMPS_DIR "/home/abucaro/lammps" CACHE STRING "")
+set(CMAKE_C_COMPILER "mpicc" CACHE STRING "Specify the compiler to use")
+set(CMAKE_CXX_STANDARD "11" CACHE STRING "Using c++11 version")

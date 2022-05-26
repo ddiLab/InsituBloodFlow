@@ -1,0 +1,130 @@
+if(CI)
+###############################################################################
+    get_filename_component(EXECUTABLE_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+###############################################################################
+#get_filename_component(PROJECT_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)
+    get_filename_component(PROJECT_NAME ${EXECUTABLE_NAME} NAME)
+    add_executable(${PROJECT_NAME} "./${EXECUTABLE_NAME}.cpp")
+# Link with the following libraries
+    target_link_libraries(${PROJECT_NAME} palabos)
+if(ENABLE_MPI)
+    target_link_libraries(${PROJECT_NAME} ${MPI_CXX_LIBRARIES})
+endif()
+###############################################################################
+# This returns when you compile Palabos and all the examples (root CMakeLists.txt)
+return()
+###############################################################################
+endif()
+cmake_minimum_required(VERSION 2.8.12)
+project(palabosExample)
+enable_language(CXX)
+
+#find_package(SENSEI REQUIRED)
+find_package(SENSEI)
+if(SENSEI_FOUND)
+  message("FOUND SENSEI")
+endif()
+
+#set(PALABOS_ROOT "$ENV{HOME}/insituBloodFlow/src/palabos" CACHE PATH "Path to PALABOS root directory")
+set(PALABOS_ROOT "$ENV{HOME}/src/palabos" CACHE PATH "Path to PALABOS root directory")
+set(BLOODFLOW_ROOT "$ENV{HOME}/insituBloodFlow/BloodFlow" CACHE PATH "Path to BloodFlow root directory")
+#set(BLOODFLOW_ROOT "$ENV{HOME}/BloodFlowConnor" CACHE PATH "Path to BloodFlow root directory")
+#set(COUPLING_ROOT "/home/insley/JTAN/CODE/palabos-lammps/")
+#FIND_PACKAGE(LAMMPS REQUIRED)
+set(LAMMPS_DIR "$ENV{HOME}/insituBloodFlow/src/lammps" CACHE PATH "Path to LAMMPS root directory")
+FIND_PATH(COUPLING_DIR palabos-lammps)
+set(LAMMPS_LIB "${LAMMPS_DIR}/src")
+#CONNOR:Change the following line to your executable name
+set(EXECUTABLE_NAME "cellFlow")
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY "../")
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+    #set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
+endif()
+message("Generated with config types: ${CMAKE_CONFIGURATION_TYPES}")
+message(${CMAKE_BUILD_TYPE})
+message("LAMMPS_INCLUDE: ${LAMMPS_INCLUDE}")
+# Compiler flags
+# Append flags: set(CMAKE_XXX_FLAGS "${CMAKE_XXX_FLAGS} ...")
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+    message("GCC.")
+    set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wnon-virtual-dtor")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -DPLB_DEBUG -O0")
+elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL Clang)
+    message("Clang.")
+    set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wnon-virtual-dtor")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "-g -DPLB_DEBUG -O0")
+elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL MSVC)
+    message("MSVC.")
+    set(CMAKE_CXX_FLAGS_RELEASE "/Ox /Ot /GS- /GL /DNDEBUG")
+    set(CMAKE_CXX_FLAGS_DEBUG "/DPLB_DEBUG")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "/LTCG /INCREMENTAL:NO /OPT:REF")
+else()
+    message( FATAL_ERROR "CXX compiler not recognized. CMake will quit." )
+endif()
+option(ENABLE_MPI "Enable MPI" ON)
+if(ENABLE_MPI)
+    message("Enabling MPI")
+    find_package(MPI REQUIRED)
+    if(MPI_CXX_FOUND)
+        #set(CMAKE_CXX_COMPILER "${MPI_CXX_COMPILER}")
+        include_directories(${MPI_CXX_INCLUDE_PATH})
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MPI_CXX_COMPILE_FLAGS}")
+        add_definitions(-DPLB_MPI_PARALLEL)
+    endif()
+endif()
+if(WIN32)
+    option(ENABLE_POSIX "Enable POSIX" OFF)
+else()
+    option(ENABLE_POSIX "Enable POSIX" ON)
+endif()
+if(ENABLE_POSIX)
+    message("Enabling POSIX")
+    add_definitions(-DPLB_USE_POSIX)
+endif()
+if(APPLE)
+    add_definitions(-DPLB_MAC_OS_X)
+endif()
+if(WIN32 OR CYGWIN)
+    add_definitions(-DPLB_WINDOWS)
+endif()
+###############################################################################
+# Palabos Library
+###############################################################################
+include_directories("${PALABOS_ROOT}/src")
+include_directories("${PALABOS_ROOT}/externalLibraries")
+include_directories("${PALABOS_ROOT}/externalLibraries/Eigen3")
+include_directories("${BLOODFLOW_ROOT}/ibm")
+include_directories("${LAMMPS_LIB}")
+file(GLOB_RECURSE PALABOS_SRC "${PALABOS_ROOT}/src/*.cpp")
+file(GLOB_RECURSE EXT_SRC "${PALABOS_ROOT}/externalLibraries/tinyxml/*.cpp")
+add_library(palabos STATIC ${PALABOS_SRC} ${EXT_SRC})
+###############################################################################
+#  LAMMPS Library
+include_directories("${LAMMPS_LIB}")
+include_directories("${COUPLING_DIR}/src")
+add_library(lammps STATIC IMPORTED)
+set_property(TARGET lammps PROPERTY
+             IMPORTED_LOCATION "${LAMMPS_LIB}/liblammps_mpi.a")
+#link_libraries (
+#    lammps
+#)
+###############################################################################
+#  SENSEI 
+
+include_directories(${SENSEI_DIR}/include)
+set(SRC
+   ${EXECUTABLE_NAME}.cpp
+   LPdataAdaptor.cpp
+   Bridge.cpp
+   ) 
+
+add_executable(${EXECUTABLE_NAME} ${SRC})
+# Link with the following libraries
+target_link_libraries(${EXECUTABLE_NAME} palabos lammps sensei)
+if(ENABLE_MPI)
+    target_link_libraries(${EXECUTABLE_NAME} ${MPI_CXX_LIBRARIES})
+endif()

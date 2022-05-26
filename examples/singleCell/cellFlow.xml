@@ -1,0 +1,15 @@
+<sensei>
+  <analysis type="PosthocIO" output_dir="./vtk_output" file_name="output"  mode="paraview" enabled="0"> 
+      <mesh name="cells">
+      <!--<mesh name="fluid">
+      <point_arrays> velocity, vorticity, velocityNorm </point_arrays>-->
+      </mesh> 
+      </analysis>
+      <analysis type="PosthocIO" output_dir="./vtk_output" file_name="output" mode="paraview" enabled="0">
+      <!--<mesh name="cells">-->
+      <mesh name="fluid">
+      <point_arrays> velocity, vorticity, velocityNorm </point_arrays>-->
+      </mesh>
+  </analysis>
+  <analysis type="catalyst" pipeline="pythonscript" filename="catalystInitializer.py" enabled="1" />
+</sensei>

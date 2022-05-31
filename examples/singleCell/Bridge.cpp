@@ -10,6 +10,10 @@ namespace Bridge
 {
    static vtkSmartPointer<senseiLP::LPDataAdaptor>  GlobalDataAdaptor;
    static vtkSmartPointer<sensei::ConfigurableAnalysis> GlobalAnalysisAdaptor;
+  
+   vtkDoubleArray *velocityDoubleArray = vtkDoubleArray::New(); //jifu: 5/31/22, define it as global and release it later
+   vtkDoubleArray *vorticityDoubleArray = vtkDoubleArray::New();
+   vtkDoubleArray *velocityNormDoubleArray = vtkDoubleArray::New();
 
 void Initialize(MPI_Comm world, const std::string& config_file){
    
@@ -31,11 +35,11 @@ void SetData(double **x, long ntimestep, int nghost,
            int nx, int ny, int nz, Box3D domainBox, plint envelopeWidth)
 {
   GlobalDataAdaptor->AddLAMMPSData(x, ntimestep, nghost, nlocal, anglelist, nanglelist);
-  
 
-  vtkDoubleArray *velocityDoubleArray = vtkDoubleArray::New();
+  /*vtkDoubleArray *velocityDoubleArray = vtkDoubleArray::New();
   vtkDoubleArray *vorticityDoubleArray = vtkDoubleArray::New();
   vtkDoubleArray *velocityNormDoubleArray = vtkDoubleArray::New();
+  */
 
 //XXXNew local values added with domainBox 2/23/22*****
   int nlx = velocityArray.getNx(); 
@@ -57,14 +61,16 @@ void SetData(double **x, long ntimestep, int nghost,
 
 //XXX Need to convert this to zero copy: FUTURE WORK
 
+        Array<double,3> vel(0.,0.,0.); //jifu 5/31/2022
+        Array<double,3> vor(0.,0.,0.);
   for (int k=0; k<nlz; k++)
   {
     for (int j=0; j<nly; j++)
     {
      for (int i=0; i<nlx; i++)
       {
-        Array<double,3> vel = velocityArray.get(i,j,k);
-        Array<double,3> vor = vorticityArray.get(i,j,k);
+        vel = velocityArray.get(i,j,k); //jifu 5/31/2022 Array<double 3> vel ->vel
+        vor = vorticityArray.get(i,j,k);
         double norm = velocityNormArray.get(i,j,k);
         int index = (j) * (nlx) + (i) + (k) * (nlx) * (nly);
         velocityDoubleArray->SetTuple3(index,vel[0],vel[1],vel[2]);
@@ -73,9 +79,8 @@ void SetData(double **x, long ntimestep, int nghost,
       }
     }
   }
+ GlobalDataAdaptor->AddPalabosData(velocityDoubleArray, vorticityDoubleArray, velocityNormDoubleArray, nx, ny, nz, domainBox, envelopeWidth);
 
- GlobalDataAdaptor->AddPalabosData(velocityDoubleArray, vorticityDoubleArray, velocityNormDoubleArray, nx, ny, nz, domainBox, envelopeWidth); 
- 
 }
 void Analyze(long ntimestep)
 {
@@ -89,6 +94,9 @@ void Finalize()
    GlobalAnalysisAdaptor->Finalize();
    GlobalAnalysisAdaptor = NULL;
    GlobalDataAdaptor = NULL;
+   velocityDoubleArray->Delete(); 
+   vorticityDoubleArray->Delete(); 
+   velocityNormDoubleArray->Delete(); // jifu: 5/31/2022 working, memory leakage is fixed 
    }
 }
 

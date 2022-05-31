@@ -588,6 +588,9 @@ namespace senseiLP
     //internals.pb_velocityDoubleArray = NULL;
     //internals.pb_vorticityDoubleArray = NULL;
     //internals.pb_velocityNormDoubleArray = NULL;
+/*    this->Internals->pb_velocityDoubleArray->Delete(); //jifu added, 5/31/2022
+    this->Internals->pb_vorticityDoubleArray->Delete(); 
+    this->Internals->pb_velocityNormDoubleArray->Delete();*/ //notworking 
     
     return 0;
   }
